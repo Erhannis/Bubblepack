@@ -24,6 +24,7 @@ public class Main : MonoBehaviour {
     private Rect playBounds;
     private List<Circle> circles;
     private GameState state;
+    private int startingCircles;
     private float requiredDensity;
     private Dictionary<int, Circle> activeCircles;
 
@@ -35,7 +36,9 @@ public class Main : MonoBehaviour {
     }
 
     void Init(int startingCircles, float requiredDensity) {
+        this.startingCircles = startingCircles;
         this.requiredDensity = requiredDensity;
+        Camera.main.backgroundColor = BG_COLOR;
         state = GameState.NORMAL;
         playBounds = new Rect(-BOARD_WIDTH/2, -BOARD_WIDTH/2, BOARD_WIDTH, BOARD_WIDTH);
         circles = new List<Circle>();
@@ -91,7 +94,7 @@ public class Main : MonoBehaviour {
 
         //Debug.Log("//TODO Remove reset key");
         if (Input.GetKeyDown("r")) {
-            Init((int)(float)SceneChanger.globals["starting_circles_float"], (float)SceneChanger.globals["required_density_float"]);
+            Init(startingCircles, requiredDensity);
             return;
         }
         // if (Input.GetKeyDown("q")) {
@@ -99,8 +102,10 @@ public class Main : MonoBehaviour {
         //     return;
         // }
 
-        foreach (var e in activeCircles) {
-            e.Value.radius += Time.deltaTime * TIMESCALE;
+        if (state == GameState.NORMAL) {
+            foreach (var e in activeCircles) {
+                e.Value.radius += Time.deltaTime * TIMESCALE;
+            }
         }
 
         doPlayerInput();
@@ -172,7 +177,36 @@ public class Main : MonoBehaviour {
         }
     }
 
+    private void newGame() {
+        float difficultyStep = 0.8f;
+        switch (state) {
+            case GameState.DEAD:
+                Init(Mathf.Max(0, startingCircles - 1), (1 - ((1 - requiredDensity) / difficultyStep)));
+                break;
+            case GameState.WON:
+                Init(startingCircles + 1, (1 - ((1 - requiredDensity) * difficultyStep)));
+                break;
+            case GameState.NORMAL:
+                Init(startingCircles, requiredDensity);
+                break;
+        }
+    }
+
     private void doPlayerInput() {
+        if (state != GameState.NORMAL) {
+            if (Input.GetMouseButtonDown(0)) {
+                newGame();
+                return;
+            }
+            foreach (Touch touch in Input.touches) {
+                if (touch.phase == TouchPhase.Began) {
+                    newGame();
+                    return;
+                }
+            }
+            return;
+        }
+
         if (Input.GetKeyDown("d")) {
         }
 
