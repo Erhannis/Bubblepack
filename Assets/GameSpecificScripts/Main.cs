@@ -250,7 +250,7 @@ public class Main : MonoBehaviour {
             }
         }
 
-        if (Input.GetMouseButtonDown(0)) { // Left click (0-left,1-right,2-middle)
+        if (Input.touches.Length == 0 && Input.GetMouseButtonDown(0)) { // Left click (0-left,1-right,2-middle)
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             Vector2 pos = new Vector2(ray.origin.x, ray.origin.y);
             var c = new Circle(pos, genPastel());
