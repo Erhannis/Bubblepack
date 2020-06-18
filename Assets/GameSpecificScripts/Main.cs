@@ -24,14 +24,13 @@ public class Main : MonoBehaviour {
     private Rect playBounds;
     private List<Circle> circles;
     private GameState state;
-
     private float requiredDensity;
 
     void Start() {
         //        int startingCircles = (int)(float)SceneChanger.globals["starting_circles_float"];
         //        float requiredDensity = (float)SceneChanger.globals["required_density_float"];
         //        Init(startingCircles, requiredDensity);
-        Init(10, 0.6f);
+        Init(2, 0.6f);
     }
 
     void Init(int startingCircles, float requiredDensity) {
@@ -40,7 +39,9 @@ public class Main : MonoBehaviour {
         playBounds = new Rect(-BOARD_WIDTH/2, -BOARD_WIDTH/2, BOARD_WIDTH, BOARD_WIDTH);
         circles = new List<Circle>();
         for (int i = 0; i < startingCircles; i++) {
-            var c = new Circle(new Vector2(UnityEngine.Random.Range(-BOARD_WIDTH/2, BOARD_WIDTH/2), UnityEngine.Random.Range(-BOARD_WIDTH/2, BOARD_WIDTH/2)), genPastel());
+            float r = UnityEngine.Random.Range(0.1f, 4f);
+            var c = new Circle(new Vector2(UnityEngine.Random.Range(-BOARD_WIDTH/2+r, BOARD_WIDTH/2-r), UnityEngine.Random.Range(-BOARD_WIDTH/2+r, BOARD_WIDTH/2-r)), genPastel());
+            c.radius = r;
             Utils.logOnceE("//TODO Check/filter initial circles");
             circles.Add(c);
         }
@@ -77,7 +78,11 @@ public class Main : MonoBehaviour {
 
         if (Application.targetFrameRate != TARGET_FPS)
             Application.targetFrameRate = TARGET_FPS;
-        //Camera.main.GetComponent<Camera>().orthographicSize = (0.5f * playBounds.width * Screen.height) / Screen.width;
+        if (Screen.height > Screen.width) {
+            Camera.main.GetComponent<Camera>().orthographicSize = 1.1f * (0.5f * playBounds.width * Screen.height) / Screen.width;
+        } else {
+            Camera.main.GetComponent<Camera>().orthographicSize = 1.1f * (0.5f * playBounds.width * Screen.width) / Screen.width;
+        }
 
         Camera.main.backgroundColor = BG_COLOR; //TODO Move elsewhere?
 
@@ -117,21 +122,44 @@ public class Main : MonoBehaviour {
         //}
     }
 
+    private static Color DEAD_BG = new Color(0.5f, 0f, 0f);
+    private static Color WON_BG = new Color(0f, 0.5f, 0f);
     private void checkWin() {
+        if (state != GameState.NORMAL) {
+            return; // Shrug
+        }
         float filledArea = 0;
         Utils.logOnceE("//TODO Check hit play bounds");
         foreach (var a in circles) {
             filledArea += a.area();
+            // Check touching bounds
+            if (a.pos.x - a.radius <= playBounds.x || a.pos.y - a.radius <= playBounds.y || a.pos.x + a.radius >= playBounds.x + playBounds.width || a.pos.y + a.radius >= playBounds.y + playBounds.height) {
+                state = GameState.DEAD;
+                a.color = Color.red;
+                //TODO Highlight play bounds?
+                Camera.main.backgroundColor = DEAD_BG;
+                return;
+            }
+            // Check touching circles
             foreach (var b in circles) {
                 if (a != b) {
                     if (a.touching(b)) {
                         // Dead
+                        state = GameState.DEAD;
                         a.color = Color.red;
                         b.color = Color.red;
-                        Camera.main.backgroundColor = Color.red;
+                        Camera.main.backgroundColor = DEAD_BG;
                         return;
                     }
                 }
+            }
+        }
+        float totalArea = playBounds.width * playBounds.height;
+        if (totalArea != 0) {
+            if (filledArea / totalArea >= requiredDensity) {
+                state = GameState.WON;
+                Camera.main.backgroundColor = WON_BG;
+                return;
             }
         }
     }
@@ -167,30 +195,6 @@ public class Main : MonoBehaviour {
         //    }
         //}
     }
-
-    //// ++++ UI
-    public void uiDigBtn(bool down) {
-        uiDigBtnDown = down;
-    }
-
-    public void uiPlaceBtn(bool down) {
-        uiPlaceBtnDown = down;
-    }
-
-    public void uiUpBtn(bool down) {
-        if (uiUpBtnDown && !down) {
-            pendingUp = true;
-        }
-        uiUpBtnDown = down;
-    }
-
-    public void uiDownBtn(bool down) {
-        if (uiDownBtnDown && !down) {
-            pendingDown = true;
-        }
-        uiDownBtnDown = down;
-    }
-    //// ---- UI
 
     static Material lineMaterial;
     static void CreateLineMaterial() {
@@ -232,9 +236,19 @@ public class Main : MonoBehaviour {
         // match our transform
         GL.MultMatrix(transform.localToWorldMatrix);
 
-        Pos3 center = getPlayerPos();
-        Pos3 visionRadius = new Pos3(((long)(horizExtent)) + 1, ((long)(vertExtent)) + 1, 1); //TODO //PARAM z vision
-        world.render(center, center - visionRadius, center + visionRadius);
+        foreach (var c in circles) {
+            drawCircle(c.pos, c.radius, true, c.color);
+        }
+
+        // Play area
+        GL.Begin(GL.LINE_STRIP);
+        GL.Color(Color.white);
+        GL.Vertex3(playBounds.xMin, playBounds.yMin, -1f);
+        GL.Vertex3(playBounds.xMax, playBounds.yMin, -1f);
+        GL.Vertex3(playBounds.xMax, playBounds.yMax, -1f);
+        GL.Vertex3(playBounds.xMin, playBounds.yMax, -1f);
+        GL.Vertex3(playBounds.xMin, playBounds.yMin, -1f);
+        GL.End();
 
         GL.PopMatrix();
 

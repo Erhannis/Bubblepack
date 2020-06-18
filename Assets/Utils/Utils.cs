@@ -19,20 +19,23 @@ public class Utils
 
     [MethodImpl(MethodImplOptions.Synchronized)]
     public static void logOnce(string msg) {
-        logged.Add(msg);
-        Debug.Log(msg);
+        if (logged.Add(msg)) {
+            Debug.Log(msg);
+        }
     }
 
     [MethodImpl(MethodImplOptions.Synchronized)]
     public static void logOnceW(string msg) {
-        logged.Add(msg);
-        Debug.LogWarning(msg);
+        if (logged.Add(msg)) {
+            Debug.LogWarning(msg);
+        }
     }
 
     [MethodImpl(MethodImplOptions.Synchronized)]
     public static void logOnceE(string msg) {
-        logged.Add(msg);
-        Debug.LogError(msg);
+        if (logged.Add(msg)) {
+            Debug.LogError(msg);
+        }
     }
     #endregion Log once
 }
