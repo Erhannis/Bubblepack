@@ -32,7 +32,7 @@ public class Main : MonoBehaviour {
         //        int startingCircles = (int)(float)SceneChanger.globals["starting_circles_float"];
         //        float requiredDensity = (float)SceneChanger.globals["required_density_float"];
         //        Init(startingCircles, requiredDensity);
-        Init(2, 0.6f);
+        Init(2, 0.3f);
     }
 
     void Init(int startingCircles, float requiredDensity) {
@@ -47,8 +47,28 @@ public class Main : MonoBehaviour {
             float r = UnityEngine.Random.Range(0.1f, 4f);
             var c = new Circle(new Vector2(UnityEngine.Random.Range(-BOARD_WIDTH/2+r, BOARD_WIDTH/2-r), UnityEngine.Random.Range(-BOARD_WIDTH/2+r, BOARD_WIDTH/2-r)), genPastel());
             c.radius = r;
-            Utils.logOnceE("//TODO Check/filter initial circles");
-            circles.Add(c);
+
+            var a = c; // Copied code, eh
+            bool fail = false;
+            // Check touching bounds
+            if (a.pos.x - a.radius <= playBounds.x || a.pos.y - a.radius <= playBounds.y || a.pos.x + a.radius >= playBounds.x + playBounds.width || a.pos.y + a.radius >= playBounds.y + playBounds.height) {
+                fail = true;
+            }
+            // Check touching circles
+            foreach (var b in circles) {
+                if (a != b) {
+                    if (a.touching(b)) {
+                        fail = true;
+                        break;
+                    }
+                }
+            }
+            if (fail) {
+                // Try again
+                i--;
+            } else {
+                circles.Add(c);
+            }
         }
     }
 
@@ -130,7 +150,6 @@ public class Main : MonoBehaviour {
             return; // Shrug
         }
         float filledArea = 0;
-        Utils.logOnceE("//TODO Check hit play bounds");
         foreach (var a in circles) {
             filledArea += a.area();
             // Check touching bounds
@@ -178,7 +197,7 @@ public class Main : MonoBehaviour {
     }
 
     private void newGame() {
-        float difficultyStep = 0.8f;
+        float difficultyStep = 0.9f;
         switch (state) {
             case GameState.DEAD:
                 Init(Mathf.Max(0, startingCircles - 1), (1 - ((1 - requiredDensity) / difficultyStep)));
