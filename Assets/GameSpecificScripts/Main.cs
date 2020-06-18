@@ -25,6 +25,7 @@ public class Main : MonoBehaviour {
     private List<Circle> circles;
     private GameState state;
     private float requiredDensity;
+    private Dictionary<int, Circle> activeCircles;
 
     void Start() {
         //        int startingCircles = (int)(float)SceneChanger.globals["starting_circles_float"];
@@ -38,6 +39,7 @@ public class Main : MonoBehaviour {
         state = GameState.NORMAL;
         playBounds = new Rect(-BOARD_WIDTH/2, -BOARD_WIDTH/2, BOARD_WIDTH, BOARD_WIDTH);
         circles = new List<Circle>();
+        activeCircles = new Dictionary<int, Circle>();
         for (int i = 0; i < startingCircles; i++) {
             float r = UnityEngine.Random.Range(0.1f, 4f);
             var c = new Circle(new Vector2(UnityEngine.Random.Range(-BOARD_WIDTH/2+r, BOARD_WIDTH/2-r), UnityEngine.Random.Range(-BOARD_WIDTH/2+r, BOARD_WIDTH/2-r)), genPastel());
@@ -84,7 +86,7 @@ public class Main : MonoBehaviour {
             Camera.main.GetComponent<Camera>().orthographicSize = 1.1f * (0.5f * playBounds.width * Screen.width) / Screen.width;
         }
 
-        Camera.main.backgroundColor = BG_COLOR; //TODO Move elsewhere?
+        //Camera.main.backgroundColor = BG_COLOR; //TODO Move elsewhere?
 
 
         //Debug.Log("//TODO Remove reset key");
@@ -97,17 +99,11 @@ public class Main : MonoBehaviour {
         //     return;
         // }
 
+        foreach (var e in activeCircles) {
+            e.Value.radius += Time.deltaTime * TIMESCALE;
+        }
 
-        // if (Input.GetKeyDown(""+(i+1))) {
-        //     turn(dials[i], !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)));
-        //     checkWin();
-        // }
-        // if (Input.GetKeyDown("s")) {
-        //     scramble();
-        //     checkWin();
-        // }
-
-        //doPlayerInput(); // No player input in autonomous mode
+        doPlayerInput();
 
         checkWin();
 
@@ -180,20 +176,36 @@ public class Main : MonoBehaviour {
         if (Input.GetKeyDown("d")) {
         }
 
-
+        //TODO Remove all activeCircles not accounted for?
         foreach (Touch touch in Input.touches) {
-            if (touch.phase == TouchPhase.Began) {
-                //MPos3 idir = checkInputDir(touch.position);
+            //touch.fingerId
+            var ray = Camera.main.ScreenPointToRay(touch.position);
+            Vector2 pos = new Vector2(ray.origin.x, ray.origin.y);
+            switch (touch.phase) {
+                case TouchPhase.Began:
+                    var c = new Circle(pos, genPastel());
+                    circles.Add(c);
+                    activeCircles[touch.fingerId] = c;
+                    break;
+                case TouchPhase.Canceled:
+                case TouchPhase.Ended:
+                    activeCircles.Remove(touch.fingerId);
+                    break;
+                case TouchPhase.Moved:
+                case TouchPhase.Stationary:
+                    break;
             }
         }
 
-        //if (!foundMov && Input.GetMouseButtonDown(0) && !(uiUpBtnDown || uiDownBtnDown)) { // Left click (0-left,1-right,2-middle)
-        //    MPos3 idir = checkInputDir(Input.mousePosition);
-        //    if (idir != null) {
-        //        dir += idir;
-        //        foundMov = true;
-        //    }
-        //}
+        if (Input.GetMouseButtonDown(0)) { // Left click (0-left,1-right,2-middle)
+            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Vector2 pos = new Vector2(ray.origin.x, ray.origin.y);
+            var c = new Circle(pos, genPastel());
+            circles.Add(c);
+            activeCircles[-1] = c;
+        } else if (Input.GetMouseButtonUp(0)) {
+            activeCircles.Remove(-1);
+        }
     }
 
     static Material lineMaterial;
