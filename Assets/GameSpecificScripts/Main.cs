@@ -38,6 +38,11 @@ public class Main : MonoBehaviour {
     void Init(int startingCircles, float requiredDensity) {
         this.startingCircles = startingCircles;
         this.requiredDensity = requiredDensity;
+
+        text_u.text = "" + startingCircles;
+        text_oro.text = "" + (((int)(requiredDensity * 1000)) / 10f) + "%";
+        //text_oro.text = "" + ((int)(requiredDensity*100))+ "%";
+
         Camera.main.backgroundColor = BG_COLOR;
         state = GameState.NORMAL;
         playBounds = new Rect(-BOARD_WIDTH/2, -BOARD_WIDTH/2, BOARD_WIDTH, BOARD_WIDTH);
@@ -176,6 +181,7 @@ public class Main : MonoBehaviour {
         }
         float totalArea = playBounds.width * playBounds.height;
         if (totalArea != 0) {
+            text_c.text = "" + (((int)((filledArea / totalArea) * 1000))/10f) + "%";
             if (filledArea / totalArea >= requiredDensity) {
                 state = GameState.WON;
                 Camera.main.backgroundColor = WON_BG;
@@ -283,6 +289,7 @@ public class Main : MonoBehaviour {
     private long count_oro = 0;
     private double ms_oro = 0;
     private System.Diagnostics.Stopwatch sw_oro = new System.Diagnostics.Stopwatch();
+    public Text text_c;
 
     // Will be called after all regular rendering is done
     public void OnRenderObject() {
